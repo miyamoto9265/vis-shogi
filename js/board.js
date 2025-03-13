@@ -166,15 +166,15 @@ class ShogiBoard {
     }
     
     /**
-     * マスがクリックされたときの処理
-     * @param {number} row クリックされたマスの行
-     * @param {number} col クリックされたマスの列
+     * 駒を移動する処理を行う（セルクリック時のハンドラ）
+     * @param {number} row 行
+     * @param {number} col 列
      */
     handleCellClick(row, col) {
         // ゲームが終了している場合は何もしない
         if (this.gameOver) return;
         
-        // クリックされたマスの駒
+        // マスの情報を取得
         const piece = this.board[row][col];
         
         // 持ち駒が選択されている場合
@@ -236,10 +236,7 @@ class ShogiBoard {
             // 選択を解除
             this.clearSelection();
             
-            // ゲームが終了していなければ手番を切り替える
-            if (!this.gameOver) {
-                this.switchTurn();
-            }
+            // 注意: 手番の切り替えはmovePiece内で行うため、ここでは行わない
         }
     }
     
@@ -272,6 +269,7 @@ class ShogiBoard {
         // 成り判定
         if (this.canPromote(piece, fromRow, toRow)) {
             // 成ることができる場合、ダイアログを表示
+            // 手番の切り替えはダイアログ内で行うため、ここでは行わない
             this.showPromotionDialog(piece, toRow, toCol);
         } else {
             // 最後に動かした駒の位置を記録
@@ -279,6 +277,11 @@ class ShogiBoard {
             
             // 将棋盤を再描画
             this.redrawBoard();
+            
+            // ゲームが終了していなければ手番を切り替える
+            if (!this.gameOver) {
+                this.switchTurn();
+            }
         }
     }
     
@@ -820,9 +823,36 @@ class ShogiBoard {
             this.turnDisplayElement.style.backgroundColor = '#ea4335'; // 赤色
         }
         
-        // 勝利メッセージを表示
+        // 勝利メッセージをカスタムダイアログで表示
         setTimeout(() => {
-            alert(winner === PIECE_OWNER.PLAYER ? '先手の勝ちです！' : '後手の勝ちです！');
+            const resultDialog = document.getElementById('game-result-dialog');
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+            const newGameButton = document.getElementById('new-game-button');
+            const closeResultButton = document.getElementById('close-result-button');
+            
+            // タイトルと内容を設定
+            resultTitle.textContent = 'ゲーム終了';
+            
+            if (winner === PIECE_OWNER.PLAYER) {
+                resultMessage.innerHTML = '<span class="winner-player">先手</span>の勝ちです！';
+            } else {
+                resultMessage.innerHTML = '<span class="winner-opponent">後手</span>の勝ちです！';
+            }
+            
+            // 新しいゲームボタンのイベントリスナー
+            newGameButton.onclick = () => {
+                resultDialog.style.display = 'none';
+                // main.jsで設定したイベントリスナーが処理するため、ここでは何もしない
+            };
+            
+            // 閉じるボタンのイベントリスナー
+            closeResultButton.onclick = () => {
+                resultDialog.style.display = 'none';
+            };
+            
+            // ダイアログを表示
+            resultDialog.style.display = 'flex';
         }, 100);
     }
     
@@ -865,11 +895,8 @@ class ShogiBoard {
         // 全駒の移動可能マス表示が無効の場合は終了
         if (!this.showAllMovableCells) return;
         
-        // 各マスごとの移動可能な駒のリスト
-        const movablePieces = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill().map(() => ({
-            player: [],
-            opponent: []
-        })));
+        // 各マスごとの移動可能な駒のリスト（プレイヤーと相手の区別をなくす）
+        const movablePieces = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill().map(() => []));
         
         // 盤上の全ての駒について移動可能マスを計算
         for (let row = 0; row < BOARD_SIZE; row++) {
@@ -880,13 +907,9 @@ class ShogiBoard {
                 // 駒の移動可能マスを取得
                 const movableCells = this.getMovableCells(row, col, piece);
                 
-                // 移動可能マスを記録
+                // 移動可能マスを記録（プレイヤーと相手の区別をなくす）
                 movableCells.forEach(cell => {
-                    if (piece.owner === PIECE_OWNER.PLAYER) {
-                        movablePieces[cell.row][cell.col].player.push({ row, col, piece });
-                    } else {
-                        movablePieces[cell.row][cell.col].opponent.push({ row, col, piece });
-                    }
+                    movablePieces[cell.row][cell.col].push({ row, col, piece, owner: piece.owner });
                 });
             }
         }
@@ -895,19 +918,15 @@ class ShogiBoard {
         for (let row = 0; row < BOARD_SIZE; row++) {
             for (let col = 0; col < BOARD_SIZE; col++) {
                 const cell = this.getCellElement(row, col);
-                const playerPieces = movablePieces[row][col].player;
-                const opponentPieces = movablePieces[row][col].opponent;
+                const allPieces = movablePieces[row][col];
                 
                 // 移動可能な駒がある場合
-                if (playerPieces.length > 0 || opponentPieces.length > 0) {
+                if (allPieces.length > 0) {
                     // 複数の駒が移動可能なマスとして設定
                     cell.classList.add('multiple-movable');
                     
-                    // プレイヤーの駒の移動可能マスを表示
-                    this.addMovableIndicators(cell, playerPieces, 'player');
-                    
-                    // 相手の駒の移動可能マスを表示
-                    this.addMovableIndicators(cell, opponentPieces, 'opponent');
+                    // すべての駒の移動可能マスを表示（プレイヤーと相手の区別なく）
+                    this.addMovableIndicators(cell, allPieces);
                 }
                 
                 // 駒を取る・取られる表示が有効の場合
@@ -918,11 +937,13 @@ class ShogiBoard {
                         const pieceElement = cell.querySelector('.piece');
                         
                         // 相手の駒を取れる場合
+                        const playerPieces = allPieces.filter(p => p.owner === PIECE_OWNER.PLAYER);
                         if (targetPiece.owner === PIECE_OWNER.OPPONENT && playerPieces.length > 0) {
                             pieceElement.classList.add('capturable-piece');
                         }
                         
                         // 自分の駒が取られる可能性がある場合
+                        const opponentPieces = allPieces.filter(p => p.owner === PIECE_OWNER.OPPONENT);
                         if (targetPiece.owner === PIECE_OWNER.PLAYER && opponentPieces.length > 0) {
                             pieceElement.classList.add('danger-piece');
                         }
@@ -936,40 +957,122 @@ class ShogiBoard {
      * 移動可能マスのインジケーターを追加する
      * @param {HTMLElement} cell マスの要素
      * @param {Array} pieces 移動可能な駒のリスト
-     * @param {string} owner 所有者（'player'または'opponent'）
      */
-    addMovableIndicators(cell, pieces, owner) {
+    addMovableIndicators(cell, pieces) {
         if (pieces.length === 0) return;
         
-        // 各駒の種類ごとにカウント
-        const pieceTypeCount = {};
+        // 各駒の種類と所有者の組み合わせごとにカウント
+        const pieceTypeOwnerCount = {};
         pieces.forEach(p => {
             const type = p.piece.type;
-            pieceTypeCount[type] = (pieceTypeCount[type] || 0) + 1;
+            const owner = p.owner === PIECE_OWNER.PLAYER ? 'player' : 'opponent';
+            const key = `${type}-${owner}`;
+            pieceTypeOwnerCount[key] = (pieceTypeOwnerCount[key] || 0) + 1;
         });
         
-        // 駒の種類の数
-        const typeCount = Object.keys(pieceTypeCount).length;
+        // 駒の種類と所有者の組み合わせの数
+        const typeOwnerCount = Object.keys(pieceTypeOwnerCount).length;
         
-        // 各駒の種類ごとにインジケーターを追加
+        // 各駒の種類と所有者の組み合わせごとにインジケーターを追加
         let index = 0;
-        for (const type in pieceTypeCount) {
+        for (const key in pieceTypeOwnerCount) {
+            const [type, owner] = key.split('-');
             const indicator = document.createElement('div');
             indicator.classList.add('multiple-movable-indicator', `movable-${type}`, `movable-${owner}`);
             
-            // 幅を計算（駒の種類の数で均等に分割）
-            const width = 100 / typeCount;
+            // 幅を計算（駒の種類と所有者の組み合わせの数で均等に分割）
+            const width = 100 / typeOwnerCount;
             indicator.style.width = `${width}%`;
             
-            // 位置を設定
-            if (owner === 'player') {
-                indicator.style.left = `${index * width}%`;
-            } else {
-                indicator.style.right = `${index * width}%`;
-            }
+            // 位置を設定（左から順に配置）
+            indicator.style.left = `${index * width}%`;
             
             cell.appendChild(indicator);
             index++;
         }
+    }
+    
+    /**
+     * 現在の盤面状態を取得する（AIインターフェース用）
+     * @returns {Array} 盤面状態の2次元配列
+     */
+    getBoardState() {
+        // 盤面状態をディープコピー
+        return JSON.parse(JSON.stringify(this.board));
+    }
+    
+    /**
+     * 現在の手番の駒のリストを取得する（AIインターフェース用）
+     * @returns {Array} 駒のリスト
+     */
+    getPiecesForCurrentTurn() {
+        const pieces = [];
+        
+        // 盤面上の駒を走査
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                const piece = this.board[row][col];
+                if (piece && piece.owner === this.currentTurn) {
+                    pieces.push({
+                        row: row,
+                        col: col,
+                        type: piece.type,
+                        owner: piece.owner,
+                        promoted: piece.promoted
+                    });
+                }
+            }
+        }
+        
+        return pieces;
+    }
+    
+    /**
+     * 現在の手番の持ち駒を取得する（AIインターフェース用）
+     * @returns {Object} 持ち駒の種類と数のマップ
+     */
+    getCapturedPiecesForCurrentTurn() {
+        return { ...this.capturedPieces[this.currentTurn] };
+    }
+    
+    /**
+     * 指定した駒の種類が打てるマスのリストを取得する（AIインターフェース用）
+     * @param {string} pieceType 駒の種類
+     * @returns {Array} 打てるマスのリスト
+     */
+    getDroppableCells(pieceType) {
+        const droppableCells = [];
+        
+        // 盤面上の空きマスを走査
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                if (!this.board[row][col] && this.canDropPiece(pieceType, this.currentTurn, row, col)) {
+                    droppableCells.push({ row, col });
+                }
+            }
+        }
+        
+        return droppableCells;
+    }
+    
+    /**
+     * AIの指し手を実行する
+     * @param {Object} move AIが選択した指し手
+     */
+    executeAIMove(move) {
+        // 投了の場合
+        if (move.resign) {
+            this.endGame(this.currentTurn === PIECE_OWNER.PLAYER ? PIECE_OWNER.OPPONENT : PIECE_OWNER.PLAYER);
+            return;
+        }
+        
+        // 持ち駒からの指し手の場合
+        if (move.fromRow === -1 && move.fromCol === -1) {
+            this.dropPiece(move.pieceType, this.currentTurn, move.toRow, move.toCol);
+            return;
+        }
+        
+        // 盤上の駒の移動の場合
+        this.movePiece(move.fromRow, move.fromCol, move.toRow, move.toCol);
     }
 }

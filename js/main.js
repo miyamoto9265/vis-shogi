@@ -5,23 +5,101 @@
 
 // DOMが読み込まれたら実行
 document.addEventListener('DOMContentLoaded', () => {
-    // 将棋盤の要素を取得
-    const boardElement = document.getElementById('shogi-board');
+    // 画面要素の取得
+    const gameModeSelection = document.getElementById('game-mode-selection');
+    const gameContainer = document.getElementById('game-container');
+    const aiSettings = document.getElementById('ai-settings');
+    const gameModeDisplay = document.getElementById('game-mode-display');
     
-    // 持ち駒エリアの要素を取得
+    // ゲームモード選択ボタン
+    const humanVsHumanBtn = document.getElementById('human-vs-human');
+    const humanVsAiBtn = document.getElementById('human-vs-ai');
+    
+    // AI設定関連の要素
+    const difficultyRadios = document.getElementsByName('difficulty');
+    const playerSideRadios = document.getElementsByName('player-side');
+    const startAiGameBtn = document.getElementById('start-ai-game');
+    const backToModeSelectionBtn = document.getElementById('back-to-mode-selection');
+    
+    // ゲーム画面関連の要素
+    const boardElement = document.getElementById('shogi-board');
     const playerCapturedElement = document.getElementById('player-captured');
     const opponentCapturedElement = document.getElementById('opponent-captured');
-    
-    // 手番表示エリアの要素を取得
     const turnDisplayElement = document.getElementById('turn-display');
+    const backToMenuButton = document.getElementById('back-to-menu-button');
     
-    // 将棋盤のインスタンスを作成
-    let shogiBoard = new ShogiBoard(
-        boardElement,
-        playerCapturedElement,
-        opponentCapturedElement,
-        turnDisplayElement
-    );
+    // 将棋盤のインスタンス
+    let shogiBoard = null;
+    
+    // AIインターフェースのインスタンス
+    let ai = null;
+    
+    // 現在のゲームモード
+    let currentGameMode = 'human-vs-human';
+    
+    // ゲームモード選択イベントリスナー
+    humanVsHumanBtn.addEventListener('click', () => {
+        currentGameMode = 'human-vs-human';
+        gameModeSelection.style.display = 'none';
+        gameContainer.style.display = 'block';
+        gameModeDisplay.textContent = '対人戦モード';
+        initializeGame();
+    });
+    
+    humanVsAiBtn.addEventListener('click', () => {
+        currentGameMode = 'human-vs-ai';
+        gameModeSelection.style.display = 'none';
+        aiSettings.style.display = 'block';
+    });
+    
+    // AI設定画面のイベントリスナー
+    startAiGameBtn.addEventListener('click', () => {
+        aiSettings.style.display = 'none';
+        gameContainer.style.display = 'block';
+        gameModeDisplay.textContent = 'AI対戦モード';
+        
+        // 選択された設定を取得
+        const difficulty = getSelectedRadioValue(difficultyRadios);
+        const playerSide = getSelectedRadioValue(playerSideRadios);
+        const timeLimit = TIME_LIMIT.NONE; // 持ち時間は常に「なし」
+        
+        // ゲームを初期化
+        initializeGame();
+        
+        // AIインターフェースを初期化
+        ai = initializeAIInterface(shogiBoard);
+        ai.updateSettings(difficulty, playerSide, timeLimit);
+        
+        // プレイヤーが後手の場合、AIが先手として指す
+        if (playerSide === PLAYER_SIDE.SECOND) {
+            // プレイヤーとAIの手番を入れ替え
+            shogiBoard.currentTurn = PIECE_OWNER.OPPONENT;
+            shogiBoard.updateTurnDisplay();
+            
+            // AIの思考を開始
+            setTimeout(() => {
+                startAIThinking();
+            }, 500);
+        }
+    });
+    
+    backToModeSelectionBtn.addEventListener('click', () => {
+        aiSettings.style.display = 'none';
+        gameModeSelection.style.display = 'block';
+    });
+    
+    // メニューに戻るボタンのイベントリスナー
+    backToMenuButton.addEventListener('click', () => {
+        if (confirm('メニューに戻りますか？現在のゲームは終了します。')) {
+            gameContainer.style.display = 'none';
+            gameModeSelection.style.display = 'block';
+            
+            // AIの思考を停止
+            if (ai && ai.isAIThinking) {
+                ai.stopThinking();
+            }
+        }
+    });
     
     // ヘルプボタンのイベントリスナーを設定
     const helpButton = document.getElementById('help-button');
@@ -34,6 +112,33 @@ document.addEventListener('DOMContentLoaded', () => {
     
     closeHelpButton.addEventListener('click', () => {
         helpDialog.style.display = 'none';
+    });
+    
+    // 設定ボタンのイベントリスナーを設定
+    const settingsButton = document.getElementById('settings-button');
+    const settingsDialog = document.getElementById('settings-dialog');
+    const closeSettingsButton = document.getElementById('close-settings');
+    
+    settingsButton.addEventListener('click', () => {
+        settingsDialog.style.display = 'flex';
+    });
+    
+    closeSettingsButton.addEventListener('click', () => {
+        settingsDialog.style.display = 'none';
+    });
+    
+    // 勝敗表示ダイアログのイベントリスナーを設定
+    const newGameButton = document.getElementById('new-game-button');
+    const closeResultButton = document.getElementById('close-result-button');
+    const gameResultDialog = document.getElementById('game-result-dialog');
+    
+    newGameButton.addEventListener('click', () => {
+        gameResultDialog.style.display = 'none';
+        resetGame();
+    });
+    
+    closeResultButton.addEventListener('click', () => {
+        gameResultDialog.style.display = 'none';
     });
     
     // テーマ切り替えボタンのイベントリスナーを設定
@@ -58,13 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // 視覚的UI強化機能の設定ボタンを追加
-    addVisualSettingsButtons();
-    
     /**
-     * ゲームをリセットする
+     * ゲームを初期化する
      */
-    function resetGame() {
+    function initializeGame() {
         // 古い将棋盤を破棄
         boardElement.innerHTML = '';
         playerCapturedElement.innerHTML = '';
@@ -73,6 +175,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // 新しい将棋盤のインスタンスを作成
         shogiBoard = new ShogiBoard(boardElement, playerCapturedElement, opponentCapturedElement, turnDisplayElement);
         
+        // AI対戦モードの場合、手番切り替え時のイベントハンドラを設定
+        if (currentGameMode === 'human-vs-ai') {
+            // 手番切り替え時のイベントをオーバーライド
+            const originalSwitchTurn = shogiBoard.switchTurn;
+            shogiBoard.switchTurn = function() {
+                // 元の手番切り替え処理を実行
+                originalSwitchTurn.call(shogiBoard);
+                
+                // AI対戦モードで、AIの手番になった場合
+                if (currentGameMode === 'human-vs-ai' && 
+                    ((ai.playerSide === PLAYER_SIDE.FIRST && shogiBoard.currentTurn === PIECE_OWNER.OPPONENT) ||
+                     (ai.playerSide === PLAYER_SIDE.SECOND && shogiBoard.currentTurn === PIECE_OWNER.PLAYER))) {
+                    // AIの思考を開始
+                    startAIThinking();
+                }
+            };
+        }
+        
         // 視覚的UI強化機能の設定を復元
         const showAllMovableCells = localStorage.getItem('showAllMovableCells') === 'false' ? false : true;
         const showCapturableMarks = localStorage.getItem('showCapturableMarks') === 'false' ? false : true;
@@ -80,11 +200,70 @@ document.addEventListener('DOMContentLoaded', () => {
         shogiBoard.showAllMovableCells = showAllMovableCells;
         shogiBoard.showCapturableMarks = showCapturableMarks;
         
-        // 設定ボタンの状態を更新
-        updateVisualSettingsButtons();
+        // 視覚的UI強化機能の設定ボタンを追加
+        addVisualSettingsButtons();
+    }
+    
+    /**
+     * AIの思考を開始する
+     */
+    function startAIThinking() {
+        if (!ai) return;
         
-        // 全駒の移動可能マスと駒を取る・取られる表示を更新
-        shogiBoard.updateAllMovableCellsAndMarks();
+        // AIの思考を開始
+        ai.startThinking((move) => {
+            // AIの指し手を実行
+            shogiBoard.executeAIMove(move);
+        });
+    }
+    
+    /**
+     * ゲームをリセットする
+     */
+    function resetGame() {
+        // AIの思考を停止
+        if (ai && ai.isAIThinking) {
+            ai.stopThinking();
+        }
+        
+        // ゲームを初期化
+        initializeGame();
+        
+        // AI対戦モードの場合、AI設定を更新
+        if (currentGameMode === 'human-vs-ai' && ai) {
+            const difficulty = getSelectedRadioValue(difficultyRadios);
+            const playerSide = getSelectedRadioValue(playerSideRadios);
+            const timeLimit = TIME_LIMIT.NONE; // 持ち時間は常に「なし」
+            
+            ai = initializeAIInterface(shogiBoard);
+            ai.updateSettings(difficulty, playerSide, timeLimit);
+            
+            // プレイヤーが後手の場合、AIが先手として指す
+            if (playerSide === PLAYER_SIDE.SECOND) {
+                // プレイヤーとAIの手番を入れ替え
+                shogiBoard.currentTurn = PIECE_OWNER.OPPONENT;
+                shogiBoard.updateTurnDisplay();
+                
+                // AIの思考を開始
+                setTimeout(() => {
+                    startAIThinking();
+                }, 500);
+            }
+        }
+    }
+    
+    /**
+     * ラジオボタンの選択値を取得する
+     * @param {NodeList} radios ラジオボタンのNodeList
+     * @returns {string} 選択された値
+     */
+    function getSelectedRadioValue(radios) {
+        for (let i = 0; i < radios.length; i++) {
+            if (radios[i].checked) {
+                return radios[i].value;
+            }
+        }
+        return null;
     }
     
     /**
@@ -121,27 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
      * 視覚的UI強化機能の設定ボタンを追加する
      */
     function addVisualSettingsButtons() {
-        // 設定ボタンを追加するコンテナを作成
-        const settingsContainer = document.createElement('div');
-        settingsContainer.classList.add('visual-settings');
-        settingsContainer.innerHTML = `
-            <h3>視覚的UI設定</h3>
-            <div class="settings-options">
-                <div class="setting-option">
-                    <label for="show-movable-cells">移動可能マス表示</label>
-                    <button id="show-movable-cells" class="toggle-btn active">ON</button>
-                </div>
-                <div class="setting-option">
-                    <label for="show-capturable-marks">駒を取る・取られる表示</label>
-                    <button id="show-capturable-marks" class="toggle-btn active">ON</button>
-                </div>
-            </div>
-        `;
-        
-        // コントロールボタンエリアの後に挿入
-        const controlButtons = document.querySelector('.control-buttons');
-        controlButtons.parentNode.insertBefore(settingsContainer, controlButtons.nextSibling);
-        
         // 移動可能マス表示の切り替えボタン
         const showMovableCellsBtn = document.getElementById('show-movable-cells');
         showMovableCellsBtn.addEventListener('click', () => {
@@ -177,13 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // 保存された設定を復元
-        const showAllMovableCells = localStorage.getItem('showAllMovableCells') === 'false' ? false : true;
-        const showCapturableMarks = localStorage.getItem('showCapturableMarks') === 'false' ? false : true;
-        
-        shogiBoard.showAllMovableCells = showAllMovableCells;
-        shogiBoard.showCapturableMarks = showCapturableMarks;
-        
-        // 設定ボタンの状態を更新
         updateVisualSettingsButtons();
     }
     

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>視覚的にわかりやすい将棋ゲーム | miyamoto-workspaces</title>
+    <title>色将棋 | miyamoto-workspaces</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -11,7 +11,7 @@
 <body>
     <header>
         <div class="header-content">
-            <h1>視覚的にわかりやすい将棋ゲーム</h1>
+            <h1>色将棋</h1>
             
             <!-- テーマ切り替え - ラベルなし、アイコンのみ -->
             <div class="theme-toggle">
@@ -33,12 +33,30 @@
     <main>
         <a href="../index.html" class="back-link">← トップページに戻る</a>
         
-        <div class="content-container">
-            <h2 class="content-heading">視覚的にわかりやすい将棋ゲーム</h2>
-            <p class="content-description">将棋初心者でも直感的に遊べる視覚的にわかりやすいUI/UXを提供する将棋ゲームです。</p>
+        <!-- ゲームモード選択画面 -->
+        <div id="game-mode-selection" class="content-container">
+            <h2 class="content-heading">ゲームモードを選択</h2>
+            <p class="content-description">対戦相手を選んでください。</p>
             
-            <!-- 手番表示エリア -->
-            <div id="turn-display" class="turn-display">先手（あなた）の番です</div>
+            <div class="game-mode-options">
+                <div class="game-mode-option" id="human-vs-human">
+                    <i class="fas fa-user"></i>
+                    <span>対人戦</span>
+                    <p>二人で交互に駒を動かして対戦します</p>
+                </div>
+                <div class="game-mode-option" id="human-vs-ai">
+                    <i class="fas fa-robot"></i>
+                    <span>AI対戦</span>
+                    <p>コンピュータと対戦します</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ゲーム画面 -->
+        <div id="game-container" class="content-container" style="display: none;">
+            
+            <!-- ゲームモード表示 -->
+            <div id="game-mode-display" class="game-mode-display">対人戦モード</div>
             
             <!-- ゲームエリア -->
             <div class="game-area">
@@ -58,14 +76,93 @@
                 </div>
             </div>
             
+            <!-- 手番表示エリア -->
+            <div id="turn-display" class="turn-display">先手（あなた）の番です</div>
+            
             <!-- 操作ボタンエリア -->
             <div class="control-buttons">
                 <button id="reset-button" class="btn">
                     <i class="fas fa-redo"></i> リセット
                 </button>
+                <button id="back-to-menu-button" class="btn">
+                    <i class="fas fa-arrow-left"></i> メニューに戻る
+                </button>
                 <button id="help-button" class="btn">
                     <i class="fas fa-question-circle"></i> ヘルプ
                 </button>
+                <button id="settings-button" class="btn">
+                    <i class="fas fa-cog"></i> 設定
+                </button>
+            </div>
+            
+            <!-- 説明文 -->
+            <p class="content-description game-description">色将棋｜将棋初心者でも直感的に遊べる視覚的にわかりやすいUI/UXを提供する将棋ゲームです。</p>
+        </div>
+        
+        <!-- 設定ダイアログ -->
+        <div id="settings-dialog" class="dialog" style="display: none;">
+            <div class="dialog-content">
+                <h3>ゲーム設定</h3>
+                <div class="settings-options">
+                    <div class="setting-option">
+                        <label for="show-movable-cells">移動可能マス表示</label>
+                        <button id="show-movable-cells" class="toggle-btn active">ON</button>
+                    </div>
+                    <div class="setting-option">
+                        <label for="show-capturable-marks">駒を取る・取られる表示</label>
+                        <button id="show-capturable-marks" class="toggle-btn active">ON</button>
+                    </div>
+                </div>
+                <button id="close-settings" class="btn">閉じる</button>
+            </div>
+        </div>
+        
+        <!-- AI設定画面 -->
+        <div id="ai-settings" class="content-container" style="display: none;">
+            <h2 class="content-heading">AI対戦設定</h2>
+            <p class="content-description">AI対戦の設定を行ってください。</p>
+            
+            <div class="ai-settings-form">
+                <div class="setting-group">
+                    <h3>難易度</h3>
+                    <div class="radio-buttons">
+                        <label>
+                            <input type="radio" name="difficulty" value="beginner" checked>
+                            <span>初級</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="difficulty" value="intermediate">
+                            <span>中級</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="difficulty" value="advanced">
+                            <span>上級</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <h3>先手/後手</h3>
+                    <div class="radio-buttons">
+                        <label>
+                            <input type="radio" name="player-side" value="first" checked>
+                            <span>先手（あなた）</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="player-side" value="second">
+                            <span>後手（あなた）</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-buttons">
+                    <button id="start-ai-game" class="btn primary-btn">
+                        <i class="fas fa-play"></i> ゲーム開始
+                    </button>
+                    <button id="back-to-mode-selection" class="btn">
+                        <i class="fas fa-arrow-left"></i> 戻る
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -121,12 +218,33 @@
         </div>
     </div>
 
+    <!-- AI思考中表示 -->
+    <div id="ai-thinking" class="ai-thinking" style="display: none;">
+        <div class="ai-thinking-content">
+            <div class="spinner"></div>
+            <p>AIが考え中...</p>
+        </div>
+    </div>
+
+    <!-- 勝敗表示ダイアログ -->
+    <div id="game-result-dialog" class="dialog" style="display: none;">
+        <div class="dialog-content result-dialog">
+            <h3 id="result-title">ゲーム終了</h3>
+            <p id="result-message" class="result-message"></p>
+            <div class="result-buttons">
+                <button id="new-game-button" class="btn primary-btn">新しいゲーム</button>
+                <button id="close-result-button" class="btn">閉じる</button>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2025 miyamoto-workspaces.site All Rights Reserved.</p>
     </footer>
 
     <script src="js/pieces.js"></script>
     <script src="js/board.js"></script>
+    <script src="js/ai/ai-interface.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html> 

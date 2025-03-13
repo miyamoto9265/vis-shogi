@@ -271,7 +271,7 @@ const PIECE_CHARS = {
 const PROMOTED_PIECE_CHARS = {
     [PIECE_TYPES.SILVER]: '全',  // 成銀
     [PIECE_TYPES.BISHOP]: '馬',  // 竜馬
-    [PIECE_TYPES.ROOK]: '龍',    // 竜王
+    [PIECE_TYPES.ROOK]: '竜',    // 竜王
     [PIECE_TYPES.KNIGHT]: '圭',  // 成桂
     [PIECE_TYPES.LANCE]: '杏',   // 成香
     [PIECE_TYPES.PAWN]: 'と'     // と金
