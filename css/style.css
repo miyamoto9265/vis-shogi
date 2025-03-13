@@ -1,0 +1,915 @@
+/* ベースとなるスタイル */
+:root {
+    /* ライトモードのデフォルト変数 */
+    --bg-color: #f5f7fa;
+    --header-bg: #ffffff;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --secondary-text: #777777;
+    --border-color: #dddddd;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --hover-shadow: rgba(0, 0, 0, 0.15);
+    --primary-color: #2c3e50;
+    --content-bg: #ffffff;
+    --content-border: #dddddd;
+    
+    /* 将棋盤と駒の色 - モダンでシンプルなデザイン */
+    --board-bg: #ffffff;
+    --board-border: #d0d0d0;
+    --cell-border: #000;
+    --cell-text: #000000;
+    --player-piece-border: #4285f4; /* 明るい青色 */
+    --opponent-piece-border: #ea4335; /* 赤色 */
+    
+    /* 駒の色 - より鮮やかで濃い色に変更 */
+    --piece-text-color-dark: #000000; /* 駒の文字色（暗い背景用） */
+    --piece-text-color-light: #ffffff; /* 駒の文字色（明るい背景用） */
+    --piece-bg-king: #222222; /* 王将/玉将：黒色 */
+    --piece-bg-rook: #9c27b0; /* 飛車：パープル */
+    --piece-bg-bishop: #4caf50; /* 角行：グリーン */
+    --piece-bg-gold: #ffeb3b; /* 金将：黄色 */
+    --piece-bg-silver: #607d8b; /* 銀将：ブルーグレー */
+    --piece-bg-knight: #ff9800; /* 桂馬：オレンジ */
+    --piece-bg-lance: #ff80ab; /* 香車：ピンク */
+    --piece-bg-pawn: #ffffff; /* 歩兵：白色 */
+    --piece-bg-promoted: #ffd700; /* 成り駒の背景色：金色 */
+    --piece-bg-promoted-dark: #b8860b; /* 成り駒の背景色（ダークモード）：暗い金色 */
+    
+    /* マスのハイライト色 */
+    --movable-cell: rgba(66, 133, 244, 0.3);
+    --selected-cell: rgba(0, 128, 255, 0.3);
+    --last-move-cell: rgba(255, 255, 0, 0.3);
+    
+    /* 視覚的UI強化のための変数 */
+    --player-movable-cell: rgba(66, 133, 244, 0.2); /* プレイヤーの駒の移動可能マス */
+    --opponent-movable-cell: rgba(234, 67, 53, 0.2); /* 相手の駒の移動可能マス */
+    --capturable-mark-color: #0000FF; /* 取れる駒のマーク色（青） */
+    --danger-mark-color: #FF0000; /* 取られる可能性のある駒のマーク色（赤） */
+    
+    /* 移動可能マスの透明度 - 設定で変更可能 */
+    --movable-cell-opacity: 0.3;
+
+    /* 駒の種類ごとの移動可能マスの色（薄い色） */
+    --movable-king: rgba(34, 34, 34, var(--movable-cell-opacity));
+    --movable-rook: rgba(156, 39, 176, var(--movable-cell-opacity));
+    --movable-bishop: rgba(76, 175, 80, var(--movable-cell-opacity));
+    --movable-gold: rgba(255, 235, 59, var(--movable-cell-opacity));
+    --movable-silver: rgba(96, 125, 139, var(--movable-cell-opacity));
+    --movable-knight: rgba(255, 152, 0, var(--movable-cell-opacity));
+    --movable-lance: rgba(255, 128, 171, var(--movable-cell-opacity));
+    --movable-pawn: rgba(255, 255, 255, var(--movable-cell-opacity));
+    
+    /* 成り駒の移動可能マスの色 */
+    --movable-promotedRook: rgba(156, 39, 176, var(--movable-cell-opacity));
+    --movable-promotedBishop: rgba(76, 175, 80, var(--movable-cell-opacity));
+    --movable-promotedSilver: rgba(96, 125, 139, var(--movable-cell-opacity));
+    --movable-promotedKnight: rgba(255, 152, 0, var(--movable-cell-opacity));
+    --movable-promotedLance: rgba(255, 128, 171, var(--movable-cell-opacity));
+    --movable-promotedPawn: rgba(255, 255, 255, var(--movable-cell-opacity));
+
+    /* 移動可能マスの境界線色 */
+    --movable-player-border: #0000FF;
+    --movable-opponent-border: #FF0000;
+}
+
+/* ダークモードの変数 */
+[data-theme="dark"] {
+    --bg-color: #1a1c23;
+    --header-bg: #242731;
+    --card-bg: #2d303a;
+    --text-color: #f0f2f5;
+    --secondary-text: #a0a6b3;
+    --border-color: #3d4457;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --hover-shadow: rgba(0, 0, 0, 0.4);
+    --primary-color: #93c5fd;
+    --content-bg: #242731;
+    --content-border: #3d4457;
+    
+    /* 将棋盤と駒の色（ダークモード） */
+    --board-bg: #37474f;
+    --board-border: #263238;
+    --cell-border: #455a64;
+    --cell-text: #f0f2f5;
+}
+
+/* リセットとベーススタイル */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* ヘッダー */
+header {
+    background-color: var(--header-bg);
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    text-align: center;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+
+h1 {
+    margin-bottom: 1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    transition: color 0.3s;
+}
+
+/* テーマ切り替えボタン */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.theme-options {
+    display: flex;
+    background-color: var(--card-bg);
+    border-radius: 20px;
+    padding: 3px;
+    border: 1px solid var(--border-color);
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}
+
+.theme-options:hover {
+    opacity: 1;
+}
+
+.theme-btn {
+    border: none;
+    background: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 5px;
+    margin: 0 2px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.theme-btn:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+}
+
+.theme-btn.active {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+/* メインコンテンツ */
+main {
+    flex: 1 0 auto;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* 戻るボタン */
+.back-link {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin-bottom: 1rem;
+}
+
+.back-link:hover {
+    background-color: #3a536b;
+}
+
+/* コンテンツカード */
+.content-container {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px var(--shadow-color);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.content-heading {
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+.content-description {
+    margin-bottom: 1.5rem;
+    color: var(--secondary-text);
+    text-align: center;
+}
+
+/* 汎用ボタン */
+.btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+    margin: 0 0.5rem;
+}
+
+.btn:hover {
+    background-color: #3a536b;
+}
+
+/* フッター */
+footer {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 1.5rem;
+    background-color: var(--header-bg);
+    color: var(--secondary-text);
+    font-size: 0.9rem;
+    box-shadow: 0 -2px 10px var(--shadow-color);
+    margin-top: auto;
+    transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+/* 将棋ゲーム固有のスタイル */
+
+/* 手番表示 */
+.turn-display {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    padding: 0.4rem;
+    border-radius: 4px;
+    background-color: var(--player-piece-border);
+    color: white;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.3s;
+}
+
+/* ゲームエリア */
+.game-area {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+/* 将棋盤 */
+.shogi-board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    border: 2px solid var(--board-border);
+    background-color: var(--board-bg);
+    width: min(calc(100vw - 4rem), 600px);
+    height: min(calc(100vw - 4rem), 600px);
+    aspect-ratio: 1 / 1;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.board-cell {
+    border: 1px solid var(--cell-border);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--cell-text);
+    transition: background-color 0.2s;
+}
+
+.board-cell:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 駒のスタイル */
+.piece {
+    width: 85%;
+    height: 85%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 10; /* 駒を移動可能マスの上に表示するため、z-indexを高くする */
+}
+
+.piece:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 駒の所有者による枠の色 */
+.piece.player {
+    border: 3px solid var(--player-piece-border);
+}
+
+.piece.opponent {
+    border: 3px solid var(--opponent-piece-border);
+    transform: rotate(180deg);
+}
+
+.piece.opponent:hover {
+    transform: rotate(180deg) translateY(-2px);
+}
+
+/* 駒の種類ごとの背景色と文字色 */
+.piece.king {
+    background-color: var(--piece-bg-king);
+    color: var(--piece-text-color-light);
+}
+
+.piece.rook {
+    background-color: var(--piece-bg-rook);
+    color: var(--piece-text-color-light);
+}
+
+.piece.bishop {
+    background-color: var(--piece-bg-bishop);
+    color: var(--piece-text-color-dark);
+}
+
+.piece.gold {
+    background-color: var(--piece-bg-gold);
+    color: var(--piece-text-color-dark);
+}
+
+.piece.silver {
+    background-color: var(--piece-bg-silver);
+    color: var(--piece-text-color-light);
+}
+
+.piece.knight {
+    background-color: var(--piece-bg-knight);
+    color: var(--piece-text-color-light);
+}
+
+.piece.lance {
+    background-color: var(--piece-bg-lance);
+    color: var(--piece-text-color-light);
+}
+
+.piece.pawn {
+    background-color: var(--piece-bg-pawn);
+    color: var(--piece-text-color-dark);
+}
+
+/* 成り駒 */
+.piece.promoted {
+    color: #ffd700; /* 文字色を黄色に変更 */
+    font-weight: bold;
+}
+
+/* と金（成り歩）の特別な文字色 */
+.piece.pawn.promoted {
+    color: #8b4513; /* 文字色を茶色に変更 */
+}
+
+/* 持ち駒エリア */
+.captured-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.03);
+    min-width: 120px;
+    min-height: 200px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.captured-pieces.opponent {
+    align-self: flex-start;
+}
+
+.captured-pieces.player {
+    align-self: flex-end;
+}
+
+/* 持ち駒 */
+.captured-piece {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    position: relative;
+    border-radius: 4px;
+    transition: transform 0.2s;
+}
+
+.captured-piece:hover {
+    transform: translateY(-2px);
+}
+
+/* 持ち駒の数 */
+.piece-count {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* マスのハイライト */
+.selected {
+    background-color: var(--selected-cell);
+    position: relative;
+    z-index: 1;
+}
+
+.movable {
+    background-color: var(--movable-cell);
+    position: relative;
+    z-index: 1;
+}
+
+.last-move {
+    box-shadow: inset 0 0 0 4px var(--last-move-cell);
+    position: relative;
+    z-index: 1;
+}
+
+/* 操作ボタンエリア */
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* ヘルプダイアログ */
+.help-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.help-content {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+.help-content h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.help-content h4 {
+    margin: 1.5rem 0 0.5rem;
+    color: var(--primary-color);
+}
+
+.help-content p {
+    margin-bottom: 0.5rem;
+}
+
+.help-content ul {
+    margin: 0.5rem 0 1rem 1.5rem;
+}
+
+.help-content li {
+    margin-bottom: 0.3rem;
+}
+
+.help-content button {
+    margin-top: 1.5rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 成り駒選択ダイアログ */
+.promotion-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.promotion-content {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 2rem;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+.promotion-content h3 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.promotion-pieces {
+    display: flex;
+    justify-content: space-around;
+    margin: 1.5rem 0;
+}
+
+.promotion-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.promotion-option:hover {
+    transform: translateY(-5px);
+}
+
+.promotion-option .piece {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+}
+
+.promotion-option p {
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+/* 視覚的UI強化のためのスタイル */
+
+/* 移動可能マスの表示 */
+.all-movable-player {
+    background-color: var(--player-movable-cell);
+    border: 2px solid var(--movable-player-border);
+}
+
+.all-movable-opponent {
+    background-color: var(--opponent-movable-cell);
+    border: 2px solid var(--movable-opponent-border);
+}
+
+/* 複数の駒が移動可能なマス */
+.multiple-movable {
+    position: relative;
+    overflow: visible;
+}
+
+.multiple-movable-indicator {
+    position: absolute;
+    height: 100%;
+    top: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    border: 2px solid;
+    pointer-events: none;
+}
+
+/* 所有者に応じた境界線の色 */
+.multiple-movable-indicator.movable-player {
+    border-color: var(--movable-player-border);
+    z-index: 1; /* プレイヤーのインジケーターを背面に表示 */
+}
+
+.multiple-movable-indicator.movable-opponent {
+    border-color: var(--movable-opponent-border);
+    z-index: 1; /* 相手のインジケーターを背面に表示 */
+}
+
+/* 駒の種類ごとの移動可能マスの色 */
+.movable-king {
+    background-color: var(--movable-king);
+}
+
+.movable-rook {
+    background-color: var(--movable-rook);
+}
+
+.movable-bishop {
+    background-color: var(--movable-bishop);
+}
+
+.movable-gold {
+    background-color: var(--movable-gold);
+}
+
+.movable-silver {
+    background-color: var(--movable-silver);
+}
+
+.movable-knight {
+    background-color: var(--movable-knight);
+}
+
+.movable-lance {
+    background-color: var(--movable-lance);
+}
+
+.movable-pawn {
+    background-color: var(--movable-pawn);
+}
+
+.movable-promotedRook {
+    background-color: var(--movable-promotedRook);
+}
+
+.movable-promotedBishop {
+    background-color: var(--movable-promotedBishop);
+}
+
+.movable-promotedSilver {
+    background-color: var(--movable-promotedSilver);
+}
+
+.movable-promotedKnight {
+    background-color: var(--movable-promotedKnight);
+}
+
+.movable-promotedLance {
+    background-color: var(--movable-promotedLance);
+}
+
+.movable-promotedPawn {
+    background-color: var(--movable-promotedPawn);
+}
+
+/* プレイヤーと相手の移動可能マスの基本スタイル */
+.movable-player {
+    border: 2px solid var(--movable-player-border);
+}
+
+.movable-opponent {
+    border: 2px solid var(--movable-opponent-border);
+}
+
+/* 駒を取る・取られる表示 */
+.capturable-piece, .danger-piece {
+    position: relative;
+}
+
+.capturable-piece::after, .danger-piece::after {
+    content: '⚔';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 1.2rem;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    z-index: 20; /* 剣マークは駒よりも上に表示 */
+}
+
+.capturable-piece::after {
+    color: var(--capturable-mark-color);
+}
+
+.danger-piece::after {
+    color: var(--danger-mark-color);
+}
+
+/* 視覚的UI設定 */
+.visual-settings {
+    margin: 2rem auto;
+    padding: 1rem;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    max-width: 600px;
+}
+
+.visual-settings h3 {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.settings-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: 1rem;
+}
+
+.setting-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.setting-option label {
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+}
+
+.toggle-btn {
+    background-color: var(--border-color);
+    color: var(--secondary-text);
+    border: none;
+    border-radius: 20px;
+    padding: 0.3rem 1rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 60px;
+}
+
+.toggle-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 透明度調整コントロール */
+.opacity-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.opacity-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.opacity-btn:hover {
+    background-color: #3a536b;
+}
+
+#opacity-value {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-color);
+    min-width: 40px;
+    text-align: center;
+}
+
+/* ゲームコンテナ */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .theme-toggle {
+        align-self: flex-end;
+        margin-bottom: 5px;
+    }
+    
+    .theme-options {
+        transform: scale(0.9);
+        opacity: 0.7;
+    }
+    
+    main {
+        padding: 1rem;
+    }
+
+    .content-container {
+        padding: 1.5rem;
+    }
+    
+    .game-area {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .captured-pieces {
+        width: 100%;
+        min-height: 100px;
+        justify-content: center;
+    }
+    
+    .shogi-board {
+        width: 100%;
+        height: auto;
+    }
+    
+    .piece {
+        font-size: 1.2rem;
+    }
+    
+    .help-content {
+        padding: 1.5rem;
+        width: 95%;
+    }
+    
+    .visual-settings {
+        padding: 0.8rem;
+    }
+    
+    .settings-options {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .setting-option {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .piece {
+        font-size: 1rem;
+    }
+    
+    .control-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+} 

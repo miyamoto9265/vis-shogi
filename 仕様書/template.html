@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ページタイトル | miyamoto-workspaces</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ベースとなるスタイル */
+        :root {
+            /* ライトモードのデフォルト変数 */
+            --bg-color: #f5f7fa;
+            --header-bg: #ffffff;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --secondary-text: #777777;
+            --border-color: #dddddd;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --hover-shadow: rgba(0, 0, 0, 0.15);
+            --primary-color: #2c3e50;
+            --content-bg: #ffffff;
+            --content-border: #dddddd;
+        }
+
+        /* ダークモードの変数 */
+        [data-theme="dark"] {
+            --bg-color: #1a1c23;
+            --header-bg: #242731;
+            --card-bg: #2d303a;
+            --text-color: #f0f2f5;
+            --secondary-text: #a0a6b3;
+            --border-color: #3d4457;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --hover-shadow: rgba(0, 0, 0, 0.4);
+            --primary-color: #93c5fd;
+            --content-bg: #242731;
+            --content-border: #3d4457;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* ヘッダー */
+        header {
+            background-color: var(--header-bg);
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            text-align: center;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            transition: color 0.3s;
+        }
+
+        /* テーマ切り替えボタン */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .theme-options {
+            display: flex;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 3px;
+            border: 1px solid var(--border-color);
+            opacity: 0.85;
+            transition: opacity 0.2s;
+        }
+
+        .theme-options:hover {
+            opacity: 1;
+        }
+
+        .theme-btn {
+            border: none;
+            background: none;
+            color: var(--secondary-text);
+            cursor: pointer;
+            padding: 5px;
+            margin: 0 2px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .theme-btn:hover {
+            background-color: rgba(128, 128, 128, 0.15);
+        }
+
+        .theme-btn.active {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex: 1 0 auto;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* コンテンツカード */
+        .content-container {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .content-heading {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .content-description {
+            margin-bottom: 1.5rem;
+            color: var(--secondary-text);
+            text-align: center;
+        }
+
+        /* 戻るボタン */
+        .back-link {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            background-color: #3a536b;
+        }
+
+        /* 汎用ボタン */
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #3a536b;
+        }
+
+        /* フッター */
+        footer {
+            flex-shrink: 0;
+            text-align: center;
+            padding: 1.5rem;
+            background-color: var(--header-bg);
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+            box-shadow: 0 -2px 10px var(--shadow-color);
+            margin-top: auto;
+            transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+        }
+
+        /* レスポンシブ調整 */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .theme-toggle {
+                align-self: flex-end;
+                margin-bottom: 5px;
+            }
+            
+            .theme-options {
+                transform: scale(0.9);
+                opacity: 0.7;
+            }
+            
+            main {
+                padding: 1rem;
+            }
+
+            .content-container {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* スマホサイズの追加調整 */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>miyamoto-workspaces</h1>
+            
+            <!-- テーマ切り替え - ラベルなし、アイコンのみ -->
+            <div class="theme-toggle">
+                <div class="theme-options">
+                    <button id="theme-auto" class="theme-btn active" title="システム設定に合わせる">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </button>
+                    <button id="theme-light" class="theme-btn" title="ライトモード">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                    </button>
+                    <button id="theme-dark" class="theme-btn" title="ダークモード">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <a href="../index.html" class="back-link">← トップページに戻る</a>
+        
+        <div class="content-container">
+            <h2 class="content-heading">コンテンツタイトル</h2>
+            <p class="content-description">ここにページの説明文を入れます。</p>
+            
+            <!-- ここにメインコンテンツを配置 -->
+            <div class="content">
+                <!-- コンテンツ -->
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 miyamoto-workspaces.site All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // DOMが読み込まれたら実行
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeAutoBtn = document.getElementById('theme-auto');
+            const themeLightBtn = document.getElementById('theme-light');
+            const themeDarkBtn = document.getElementById('theme-dark');
+            
+            // テーマ処理 - システム設定の検出用
+            const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+            
+            // ローカルストレージからテーマ設定を取得
+            const savedTheme = localStorage.getItem('theme-preference');
+            
+            // テーマ設定の適用
+            function applyTheme(theme) {
+                // すべてのボタンからactiveクラスを削除
+                themeAutoBtn.classList.remove('active');
+                themeLightBtn.classList.remove('active');
+                themeDarkBtn.classList.remove('active');
+                
+                if (theme === 'auto') {
+                    // システム設定に基づいてテーマを適用
+                    themeAutoBtn.classList.add('active');
+                    localStorage.setItem('theme-preference', 'auto');
+                    
+                    if (prefersDarkScheme.matches) {
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                    } else {
+                        document.documentElement.setAttribute('data-theme', 'light');
+                    }
+                } else if (theme === 'dark') {
+                    // ダークモードを明示的に適用
+                    themeDarkBtn.classList.add('active');
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme-preference', 'dark');
+                } else {
+                    // ライトモードを明示的に適用
+                    themeLightBtn.classList.add('active');
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    localStorage.setItem('theme-preference', 'light');
+                }
+            }
+            
+            // 初期テーマの設定
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else {
+                // デフォルトはシステム設定に従う
+                applyTheme('auto');
+            }
+            
+            // テーマ切り替えボタンのイベントリスナー
+            themeAutoBtn.addEventListener('click', () => applyTheme('auto'));
+            themeLightBtn.addEventListener('click', () => applyTheme('light'));
+            themeDarkBtn.addEventListener('click', () => applyTheme('dark'));
+            
+            // システム設定の変更を検出
+            prefersDarkScheme.addEventListener('change', (e) => {
+                // 'auto'モードの場合のみシステム設定の変更を反映
+                if (localStorage.getItem('theme-preference') === 'auto') {
+                    if (e.matches) {
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                    } else {
+                        document.documentElement.setAttribute('data-theme', 'light');
+                    }
+                }
+            });
+            
+            // ここに追加のJavaScriptを記述
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>視覚的にわかりやすい将棋ゲーム | miyamoto-workspaces</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>視覚的にわかりやすい将棋ゲーム</h1>
+            
+            <!-- テーマ切り替え - ラベルなし、アイコンのみ -->
+            <div class="theme-toggle">
+                <div class="theme-options">
+                    <button id="light-mode" class="theme-btn" title="ライトモード">
+                        <i class="fas fa-sun"></i>
+                    </button>
+                    <button id="dark-mode" class="theme-btn" title="ダークモード">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="system-mode" class="theme-btn" title="システム設定に合わせる">
+                        <i class="fas fa-desktop"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <a href="../index.html" class="back-link">← トップページに戻る</a>
+        
+        <div class="content-container">
+            <h2 class="content-heading">視覚的にわかりやすい将棋ゲーム</h2>
+            <p class="content-description">将棋初心者でも直感的に遊べる視覚的にわかりやすいUI/UXを提供する将棋ゲームです。</p>
+            
+            <!-- 手番表示エリア -->
+            <div id="turn-display" class="turn-display">先手（あなた）の番です</div>
+            
+            <!-- ゲームエリア -->
+            <div class="game-area">
+                <!-- 相手の持ち駒エリア -->
+                <div id="opponent-captured" class="captured-pieces opponent">
+                    <!-- 持ち駒はJSで動的に追加 -->
+                </div>
+                
+                <!-- 将棋盤 -->
+                <div id="shogi-board" class="shogi-board">
+                    <!-- 将棋盤はJSで動的に生成 -->
+                </div>
+                
+                <!-- 自分の持ち駒エリア -->
+                <div id="player-captured" class="captured-pieces player">
+                    <!-- 持ち駒はJSで動的に追加 -->
+                </div>
+            </div>
+            
+            <!-- 操作ボタンエリア -->
+            <div class="control-buttons">
+                <button id="reset-button" class="btn">
+                    <i class="fas fa-redo"></i> リセット
+                </button>
+                <button id="help-button" class="btn">
+                    <i class="fas fa-question-circle"></i> ヘルプ
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ヘルプダイアログ -->
+    <div id="help-dialog" class="help-dialog" style="display: none;">
+        <div class="help-content">
+            <h3>将棋のルール</h3>
+            
+            <h4>基本ルール</h4>
+            <p>将棋は2人で遊ぶボードゲームです。交互に駒を動かし、相手の王将（玉将）を詰ませることが目的です。</p>
+            
+            <h4>駒の動かし方</h4>
+            <ul>
+                <li><strong>王将/玉将</strong>：8方向に1マス</li>
+                <li><strong>飛車</strong>：上下左右に何マスでも</li>
+                <li><strong>角行</strong>：斜め方向に何マスでも</li>
+                <li><strong>金将</strong>：上下左右と斜め前に1マス</li>
+                <li><strong>銀将</strong>：斜め4方向と前に1マス</li>
+                <li><strong>桂馬</strong>：前方の斜め2マス先（L字）</li>
+                <li><strong>香車</strong>：前方向に何マスでも</li>
+                <li><strong>歩兵</strong>：前に1マス</li>
+            </ul>
+            
+            <h4>駒の成り（昇進）</h4>
+            <p>駒が敵陣（1-3段目または7-9段目）に入るか、敵陣から動く場合、成ることができます。成ると動きが変わります。</p>
+            
+            <h4>持ち駒</h4>
+            <p>相手の駒を取ると、その駒は自分の持ち駒になります。持ち駒は盤上の空いているマスに打つことができます。</p>
+            
+            <button id="close-help" class="btn">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 成り駒選択ダイアログ -->
+    <div id="promotion-dialog" class="promotion-dialog" style="display: none;">
+        <div class="promotion-content">
+            <h3>駒を成りますか？</h3>
+            <div class="promotion-pieces">
+                <div class="promotion-option">
+                    <div id="promote-yes" class="piece promoted">
+                        <span id="promoted-char">と</span>
+                    </div>
+                    <p>成る</p>
+                </div>
+                <div class="promotion-option">
+                    <div id="promote-no" class="piece">
+                        <span id="normal-char">歩</span>
+                    </div>
+                    <p>成らない</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 miyamoto-workspaces.site All Rights Reserved.</p>
+    </footer>
+
+    <script src="js/pieces.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
