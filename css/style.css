@@ -18,8 +18,8 @@
     --board-border: #d0d0d0;
     --cell-border: #000;
     --cell-text: #000000;
-    --player-piece-border: #4285f4; /* 明るい青色 */
-    --opponent-piece-border: #ea4335; /* 赤色 */
+    --player-piece-border: #3367d6; /* より落ち着いた青色 */
+    --opponent-piece-border: #c5221f; /* より落ち着いた赤色 */
     
     /* 駒の色 - より鮮やかで濃い色に変更 */
     --piece-text-color-dark: #000000; /* 駒の文字色（暗い背景用） */
@@ -43,8 +43,10 @@
     /* 視覚的UI強化のための変数 */
     --player-movable-cell: rgba(66, 133, 244, 0.2); /* プレイヤーの駒の移動可能マス */
     --opponent-movable-cell: rgba(234, 67, 53, 0.2); /* 相手の駒の移動可能マス */
-    --capturable-mark-color: #0000FF; /* 取れる駒のマーク色（青） */
-    --danger-mark-color: #FF0000; /* 取られる可能性のある駒のマーク色（赤） */
+    --movable-player-border: rgba(100, 148, 237, 0.8); /* 太い柔らかい青色の境界線 */
+    --movable-opponent-border: rgba(255, 160, 160, 0.8); /* 太い柔らかいピンク色の境界線 */
+    --capturable-mark-color: #3b7fff; /* 取れる駒のマーク色（落ち着いた青） */
+    --danger-mark-color: #e63946; /* 取られる可能性のある駒のマーク色（赤） */
     
     /* 移動可能マスの透明度 - 設定で変更可能 */
     --movable-cell-opacity: 0.4; /* より見やすくするために透明度を下げる */
@@ -67,10 +69,6 @@
     --movable-promotedLance: rgba(255, 128, 171, var(--movable-cell-opacity));
     --movable-promotedPawn: rgba(255, 255, 255, var(--movable-cell-opacity));
 
-    /* 移動可能マスの境界線色 */
-    --movable-player-border: #0000FF;
-    --movable-opponent-border: #FF0000;
-    
     /* AI対戦機能のための変数 */
     --ai-primary-color: #4285f4;
     --ai-secondary-color: #34a853;
@@ -716,11 +714,11 @@ footer {
 
 /* プレイヤーと相手の移動可能マスの基本スタイル */
 .movable-player {
-    border: 2px solid var(--movable-player-border);
+    border: 4px solid var(--movable-player-border);
 }
 
 .movable-opponent {
-    border: 2px solid var(--movable-opponent-border);
+    border: 4px solid var(--movable-opponent-border);
 }
 
 /* 駒を取る・取られる表示 */
@@ -728,22 +726,46 @@ footer {
     position: relative;
 }
 
-.capturable-piece::after, .danger-piece::after {
-    content: '⚔';
+/* 相手の駒のバッジが反転しないように特別な指定を追加 */
+.piece.opponent.capturable-piece::before, 
+.piece.opponent.danger-piece::before {
+    /* 駒が180度回転しているので、バッジも180度回転して元に戻す */
+    transform: rotate(180deg);
+    /* 右上に表示されるように位置を調整 */
+    top: auto;
+    right: auto;
+    bottom: -8px;
+    left: -8px;
+}
+
+.capturable-piece::before, .danger-piece::before {
+    content: '';
     position: absolute;
-    top: -5px;
-    right: -5px;
-    font-size: 1.2rem;
-    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
-    z-index: 20; /* 剣マークは駒よりも上に表示 */
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    top: -8px;
+    right: -8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 14px;
+    z-index: 20;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: 2px solid white;
 }
 
-.capturable-piece::after {
-    color: var(--capturable-mark-color);
+.capturable-piece::before {
+    background-color: var(--capturable-mark-color);
+    color: white;
+    content: '✓';
 }
 
-.danger-piece::after {
-    color: var(--danger-mark-color);
+.danger-piece::before {
+    background-color: var(--danger-mark-color);
+    color: white;
+    content: '!';
 }
 
 /* 視覚的UI設定 */

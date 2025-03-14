@@ -914,9 +914,44 @@ class ShogiBoard {
             }
         }
         
+        // 駒を取る・取られる状態を計算し、そのマスのリストを作成
+        const capturableCells = new Set();
+        
+        if (this.showCapturableMarks) {
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const targetPiece = this.board[row][col];
+                    if (!targetPiece) continue;
+                    
+                    const allPieces = movablePieces[row][col];
+                    
+                    // 相手の駒を取れる場合
+                    const playerPieces = allPieces.filter(p => p.owner === PIECE_OWNER.PLAYER);
+                    if (targetPiece.owner === PIECE_OWNER.OPPONENT && playerPieces.length > 0) {
+                        const cell = this.getCellElement(row, col);
+                        const pieceElement = cell.querySelector('.piece');
+                        pieceElement.classList.add('capturable-piece');
+                        capturableCells.add(`${row}-${col}`);
+                    }
+                    
+                    // 自分の駒が取られる可能性がある場合
+                    const opponentPieces = allPieces.filter(p => p.owner === PIECE_OWNER.OPPONENT);
+                    if (targetPiece.owner === PIECE_OWNER.PLAYER && opponentPieces.length > 0) {
+                        const cell = this.getCellElement(row, col);
+                        const pieceElement = cell.querySelector('.piece');
+                        pieceElement.classList.add('danger-piece');
+                        capturableCells.add(`${row}-${col}`);
+                    }
+                }
+            }
+        }
+        
         // 移動可能マスの表示を更新
         for (let row = 0; row < BOARD_SIZE; row++) {
             for (let col = 0; col < BOARD_SIZE; col++) {
+                // 取れる/取られるマスは移動可能マス表示をしない
+                if (capturableCells.has(`${row}-${col}`)) continue;
+                
                 const cell = this.getCellElement(row, col);
                 const allPieces = movablePieces[row][col];
                 
@@ -927,27 +962,6 @@ class ShogiBoard {
                     
                     // すべての駒の移動可能マスを表示（プレイヤーと相手の区別なく）
                     this.addMovableIndicators(cell, allPieces);
-                }
-                
-                // 駒を取る・取られる表示が有効の場合
-                if (this.showCapturableMarks) {
-                    // マスに駒がある場合
-                    const targetPiece = this.board[row][col];
-                    if (targetPiece) {
-                        const pieceElement = cell.querySelector('.piece');
-                        
-                        // 相手の駒を取れる場合
-                        const playerPieces = allPieces.filter(p => p.owner === PIECE_OWNER.PLAYER);
-                        if (targetPiece.owner === PIECE_OWNER.OPPONENT && playerPieces.length > 0) {
-                            pieceElement.classList.add('capturable-piece');
-                        }
-                        
-                        // 自分の駒が取られる可能性がある場合
-                        const opponentPieces = allPieces.filter(p => p.owner === PIECE_OWNER.OPPONENT);
-                        if (targetPiece.owner === PIECE_OWNER.PLAYER && opponentPieces.length > 0) {
-                            pieceElement.classList.add('danger-piece');
-                        }
-                    }
                 }
             }
         }
