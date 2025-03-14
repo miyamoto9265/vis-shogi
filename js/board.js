@@ -181,6 +181,11 @@ class ShogiBoard {
         if (this.selectedCapturedPiece) {
             // 移動可能なマスでなければ何もしない
             if (!this.isMovableCell(row, col)) {
+                // 自分の別の駒をクリックした場合は選択を切り替える
+                if (piece && piece.owner === this.currentTurn) {
+                    this.clearSelection();
+                    this.handleCellClick(row, col);
+                }
                 return;
             }
             
@@ -254,12 +259,11 @@ class ShogiBoard {
         // 移動先に駒があれば捕獲する
         const capturedPiece = this.board[toRow][toCol];
         if (capturedPiece) {
-            // 王または玉を取った場合はゲーム終了
-            if (capturedPiece.type === PIECE_TYPES.KING) {
-                this.endGame(piece.owner);
-            } else {
+            // 全ての駒を通常通り捕獲する（王も含む）
                 this.capturePiece(capturedPiece);
-            }
+            
+            // 王を取った場合は、移動後にゲーム終了処理を行う
+            // 注：この処理は移動後に行う必要がある
         }
         
         // 駒を移動
@@ -275,12 +279,17 @@ class ShogiBoard {
             // 最後に動かした駒の位置を記録
             this.lastMovedPiece = { row: toRow, col: toCol };
             
+            // 王を取った場合は、ここでゲーム終了処理を行う
+            if (capturedPiece && capturedPiece.type === PIECE_TYPES.KING) {
+                this.endGame(piece.owner);
+            } else {
             // 将棋盤を再描画
             this.redrawBoard();
             
             // ゲームが終了していなければ手番を切り替える
             if (!this.gameOver) {
                 this.switchTurn();
+                }
             }
         }
     }
@@ -395,11 +404,11 @@ class ShogiBoard {
     }
     
     /**
-     * 持ち駒を打つ
+     * 持ち駒を盤面に打つ
      * @param {string} pieceType 駒の種類
      * @param {string} owner 所有者
-     * @param {number} row 行
-     * @param {number} col 列
+     * @param {number} row 配置する行
+     * @param {number} col 配置する列
      */
     dropPiece(pieceType, owner, row, col) {
         // 持ち駒の数を減らす
@@ -411,7 +420,7 @@ class ShogiBoard {
         }
         
         // 盤上に駒を配置
-        this.board[row][col] = { type: pieceType, owner: owner };
+        this.board[row][col] = { type: pieceType, owner: owner, promoted: false };
         
         // 最後に動かした駒の位置を記録
         this.lastMovedPiece = { row, col };
@@ -421,6 +430,11 @@ class ShogiBoard {
         
         // 将棋盤を再描画
         this.redrawBoard();
+        
+        // 手番を切り替える（ゲームが終了していなければ）
+        if (!this.gameOver) {
+            this.switchTurn();
+        }
     }
     
     /**
@@ -861,10 +875,10 @@ class ShogiBoard {
      */
     updateTurnDisplay() {
         if (this.currentTurn === PIECE_OWNER.PLAYER) {
-            this.turnDisplayElement.textContent = '先手（あなた）の番です';
+            this.turnDisplayElement.textContent = '先手の番です';
             this.turnDisplayElement.style.backgroundColor = '#4285f4'; // 青色
         } else {
-            this.turnDisplayElement.textContent = '後手（相手）の番です';
+            this.turnDisplayElement.textContent = '後手の番です';
             this.turnDisplayElement.style.backgroundColor = '#ea4335'; // 赤色
         }
     }
@@ -1199,6 +1213,8 @@ class ShogiBoard {
      * @param {Object} move AIが選択した指し手
      */
     executeAIMove(move) {
+        console.log('AIの指し手を実行:', move);
+        
         // 投了の場合
         if (move.resign) {
             this.endGame(this.currentTurn === PIECE_OWNER.PLAYER ? PIECE_OWNER.OPPONENT : PIECE_OWNER.PLAYER);
@@ -1207,11 +1223,293 @@ class ShogiBoard {
         
         // 持ち駒からの指し手の場合
         if (move.fromRow === -1 && move.fromCol === -1) {
+            // dropPiece内で手番の切り替えが行われる
             this.dropPiece(move.pieceType, this.currentTurn, move.toRow, move.toCol);
             return;
         }
         
         // 盤上の駒の移動の場合
-        this.movePiece(move.fromRow, move.fromCol, move.toRow, move.toCol);
+        const piece = this.board[move.fromRow][move.fromCol];
+        if (!piece) return;
+        
+        // 移動先のマスに駒があれば取る
+        const targetPiece = this.board[move.toRow][move.toCol];
+        const isKingCaptured = targetPiece && targetPiece.type === PIECE_TYPES.KING;
+        
+        if (targetPiece) {
+            this.capturePiece(targetPiece);
+        }
+        
+        // 成るかどうかを決める
+        if (move.promote && !piece.promoted) {
+            // 成る場合
+            this.board[move.toRow][move.toCol] = {
+                type: piece.type,
+                owner: piece.owner,
+                promoted: true
+            };
+        } else {
+            // 成らない場合
+            this.board[move.toRow][move.toCol] = {
+                type: piece.type,
+                owner: piece.owner,
+                promoted: piece.promoted
+            };
+        }
+        
+        // 元の位置を空にする
+        this.board[move.fromRow][move.fromCol] = null;
+        
+        // 最後に動いた駒の位置を記録
+        this.lastMovedPiece = { row: move.toRow, col: move.toCol };
+        
+        // 王を取った場合はゲーム終了
+        if (isKingCaptured) {
+            this.endGame(piece.owner);
+            return;
+        }
+        
+        // 盤面を再描画
+        this.redrawBoard();
+        
+        // 手番を切り替える
+        this.switchTurn();
+    }
+    
+    /**
+     * 合法手を生成する（AIシミュレーション用）
+     * @returns {Array} 合法手のリスト
+     */
+    generateLegalMoves() {
+        const legalMoves = [];
+        
+        // 現在の手番の駒（盤上の駒）の合法手を生成
+        for (let row = 0; row < BOARD_SIZE; row++) {
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                const piece = this.board[row][col];
+                if (!piece || piece.owner !== this.currentTurn) continue;
+                
+                // 駒の移動可能なマスを取得
+                const movableCells = this.getMovableCells(row, col, piece);
+                
+                // 各移動可能なマスについて合法手を生成
+                movableCells.forEach(cell => {
+                    const move = {
+                        fromRow: row,
+                        fromCol: col,
+                        toRow: cell.row,
+                        toCol: cell.col,
+                        piece: { ...piece },
+                        promote: false,  // 初期値は成らない
+                        capturedPiece: this.board[cell.row][cell.col] ? { ...this.board[cell.row][cell.col] } : null
+                    };
+                    
+                    // 成り判定
+                    if (this.canPromote(piece, row, cell.row)) {
+                        // 成る手を追加
+                        const promoteMove = { ...move, promote: true };
+                        legalMoves.push(promoteMove);
+                        
+                        // 成らない手も追加（強制的に成る場合を除く）
+                        if (!this.mustPromote(piece, cell.row)) {
+                            legalMoves.push(move);
+                        }
+                    } else {
+                        // 成れない場合は通常の手を追加
+                        legalMoves.push(move);
+                    }
+                });
+            }
+        }
+        
+        // 持ち駒の合法手を生成
+        for (const pieceType in this.capturedPieces[this.currentTurn]) {
+            // 駒の数が0以下ならスキップ
+            if (this.capturedPieces[this.currentTurn][pieceType] <= 0) continue;
+            
+            // 打てるマスのリストを取得
+            const droppableCells = this.getDroppableCells(pieceType);
+            
+            // 各打てるマスについて合法手を生成
+            droppableCells.forEach(cell => {
+                const move = {
+                    fromRow: -1,
+                    fromCol: -1,
+                    toRow: cell.row,
+                    toCol: cell.col,
+                    pieceType: pieceType,
+                    promote: false,
+                    capturedPiece: null
+                };
+                
+                legalMoves.push(move);
+            });
+        }
+        
+        return legalMoves;
+    }
+    
+    /**
+     * AIシミュレーション用の指し手を実行する
+     * （実際の盤面を変更するが、UI更新はしない）
+     * @param {Object} move 指し手
+     * @returns {Object|null} 取った駒（あれば）
+     */
+    makeMove(move) {
+        let capturedPiece = null;
+        
+        // 持ち駒を打つ場合
+        if (move.fromRow === -1 && move.fromCol === -1) {
+            // 持ち駒の数を減らす
+            this.capturedPieces[this.currentTurn][move.pieceType]--;
+            if (this.capturedPieces[this.currentTurn][move.pieceType] <= 0) {
+                delete this.capturedPieces[this.currentTurn][move.pieceType];
+            }
+            
+            // 盤上に駒を配置
+            this.board[move.toRow][move.toCol] = {
+                type: move.pieceType,
+                owner: this.currentTurn,
+                promoted: false
+            };
+            
+            return null;
+        }
+        
+        // 盤上の駒を動かす場合
+        const piece = this.board[move.fromRow][move.fromCol];
+        if (!piece) return null;
+        
+        // 移動先に駒があれば取る
+        if (this.board[move.toRow][move.toCol]) {
+            capturedPiece = { ...this.board[move.toRow][move.toCol] };
+            
+            // 成り駒は元に戻す
+            if (capturedPiece.promoted) {
+                capturedPiece.promoted = false;
+            }
+            
+            // 持ち駒に追加
+            const newOwner = this.currentTurn;
+            if (!this.capturedPieces[newOwner][capturedPiece.type]) {
+                this.capturedPieces[newOwner][capturedPiece.type] = 1;
+            } else {
+                this.capturedPieces[newOwner][capturedPiece.type]++;
+            }
+        }
+        
+        // 成るかどうか
+        const promoted = move.promote || false;
+        
+        // 駒を移動
+        this.board[move.toRow][move.toCol] = {
+            type: piece.type,
+            owner: piece.owner,
+            promoted: promoted ? true : piece.promoted
+        };
+        
+        // 元の位置を空に
+        this.board[move.fromRow][move.fromCol] = null;
+        
+        return capturedPiece;
+    }
+    
+    /**
+     * AIシミュレーション用に手を元に戻す
+     * @param {Object} move 元に戻す指し手
+     * @param {Object|null} capturedPiece 取った駒（あれば）
+     */
+    undoMove(move, capturedPiece) {
+        // 持ち駒を打った場合
+        if (move.fromRow === -1 && move.fromCol === -1) {
+            // 盤上から駒を削除
+            this.board[move.toRow][move.toCol] = null;
+            
+            // 持ち駒を元に戻す
+            if (!this.capturedPieces[this.currentTurn][move.pieceType]) {
+                this.capturedPieces[this.currentTurn][move.pieceType] = 1;
+            } else {
+                this.capturedPieces[this.currentTurn][move.pieceType]++;
+            }
+            
+            return;
+        }
+        
+        // 盤上の駒を動かした場合
+        const piece = this.board[move.toRow][move.toCol];
+        if (!piece) return;
+        
+        // 元の位置に駒を戻す（成りも元に戻す）
+        this.board[move.fromRow][move.fromCol] = {
+            type: piece.type,
+            owner: piece.owner,
+            promoted: move.promote ? false : piece.promoted
+        };
+        
+        // 移動先のマスを元に戻す
+        if (capturedPiece) {
+            // 取った駒があれば元に戻す
+            this.board[move.toRow][move.toCol] = capturedPiece;
+            
+            // 持ち駒から削除
+            const owner = this.currentTurn;
+            if (this.capturedPieces[owner][capturedPiece.type]) {
+                this.capturedPieces[owner][capturedPiece.type]--;
+                if (this.capturedPieces[owner][capturedPiece.type] <= 0) {
+                    delete this.capturedPieces[owner][capturedPiece.type];
+                }
+            }
+        } else {
+            // 駒を取らなかった場合は空にする
+            this.board[move.toRow][move.toCol] = null;
+        }
+    }
+    
+    /**
+     * 特定のプレイヤーの持ち駒を取得する（AIシミュレーション用）
+     * @param {string} player プレイヤー（PIECE_OWNER.PLAYERまたはPIECE_OWNER.OPPONENT）
+     * @returns {Object} 持ち駒のオブジェクト
+     */
+    getHand(player) {
+        return { ...this.capturedPieces[player] };
+    }
+    
+    /**
+     * 成りが強制される状況かどうかを判定する
+     * @param {Object} piece 駒オブジェクト
+     * @param {number} toRow 移動先の行
+     * @returns {boolean} 成りが強制される場合はtrue
+     */
+    mustPromote(piece, toRow) {
+        // 既に成っている場合は関係ない
+        if (piece.promoted) return false;
+        
+        // 成れない駒種は関係ない
+        if (piece.type === PIECE_TYPES.KING || piece.type === PIECE_TYPES.GOLD) return false;
+        
+        // 先手の場合
+        if (piece.owner === PIECE_OWNER.PLAYER) {
+            // 歩、香車が1段目に進む場合は成りが強制
+            if ((piece.type === PIECE_TYPES.PAWN || piece.type === PIECE_TYPES.LANCE) && toRow === 0) {
+                return true;
+            }
+            // 桂馬が1,2段目に進む場合は成りが強制
+            if (piece.type === PIECE_TYPES.KNIGHT && toRow <= 1) {
+                return true;
+            }
+        }
+        // 後手の場合
+        else {
+            // 歩、香車が9段目に進む場合は成りが強制
+            if ((piece.type === PIECE_TYPES.PAWN || piece.type === PIECE_TYPES.LANCE) && toRow === 8) {
+                return true;
+            }
+            // 桂馬が8,9段目に進む場合は成りが強制
+            if (piece.type === PIECE_TYPES.KNIGHT && toRow >= 7) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

@@ -96,7 +96,7 @@
             </div>
             
             <!-- 説明文 -->
-            <p class="content-description game-description">色将棋｜将棋初心者でも直感的に遊べる視覚的にわかりやすいUI/UXを提供する将棋ゲームです。</p>
+            <p class="content-description game-description">色将棋｜将棋初心者でも直感的に遊べる視覚的にわかりやすい将棋ゲームです。</p>
         </div>
         
         <!-- 設定ダイアログ -->
@@ -238,13 +238,41 @@
         </div>
     </div>
 
-    <footer>
-        <p>&copy; 2025 miyamoto-workspaces.site All Rights Reserved.</p>
-    </footer>
-
+    <!-- 定数定義のスクリプト -->
+    <script>
+        // 持ち時間設定（秒）- AIインターフェースとmain.jsで共有
+        const TIME_LIMIT = {
+            NONE: 'none'     // 無制限
+        };
+        
+        // AIの難易度レベル - 共通定義
+        const AI_DIFFICULTY = {
+            BEGINNER: 'beginner',    // 初級
+            INTERMEDIATE: 'intermediate', // 中級
+            ADVANCED: 'advanced'     // 上級
+        };
+        
+        // プレイヤーの手番 - 共通定義
+        const PLAYER_SIDE = {
+            FIRST: 'first',  // 先手
+            SECOND: 'second' // 後手
+        };
+    </script>
+    
+    <!-- JavaScriptの読み込み -->
+    <script src="js/version.js"></script>
     <script src="js/pieces.js"></script>
     <script src="js/board.js"></script>
+    <script src="js/ai/chess-engine.js"></script>
     <script src="js/ai/ai-interface.js"></script>
     <script src="js/main.js"></script>
+    
+    <!-- フッター -->
+    <footer class="game-footer">
+        <div class="container">
+            <p>&copy; 2025 miyamoto-workspaces.site All Rights Reserved.</p>
+            <p id="version-info">バージョン: <span id="game-version"></span></p>
+        </div>
+    </footer>
 </body>
 </html> 

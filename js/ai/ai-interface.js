@@ -1,25 +1,10 @@
 /**
  * AI対戦機能のインターフェースを提供するモジュール
- * YaneuraOu WebAssembly版との通信を担当
+ * 将棋AIエンジンとの通信を担当
  */
+console.log('ai-interface.js loaded');
 
-// AIの難易度レベル
-const AI_DIFFICULTY = {
-    BEGINNER: 'beginner',    // 初級
-    INTERMEDIATE: 'intermediate', // 中級
-    ADVANCED: 'advanced'     // 上級
-};
-
-// プレイヤーの手番
-const PLAYER_SIDE = {
-    FIRST: 'first',  // 先手
-    SECOND: 'second' // 後手
-};
-
-// 持ち時間設定（秒）
-const TIME_LIMIT = {
-    NONE: 'none'     // 無制限
-};
+// AIの難易度レベル、プレイヤーの手番、持ち時間設定はindex.htmlで定義されています
 
 /**
  * AI対戦機能を管理するクラス
@@ -37,16 +22,15 @@ class AIInterface {
         // AI設定
         this.difficulty = AI_DIFFICULTY.BEGINNER;
         this.playerSide = PLAYER_SIDE.FIRST;
-        this.timeLimit = TIME_LIMIT.NONE;
         
-        // WebAssembly版YaneuraOuの読み込み状況
-        this.engineLoaded = false;
+        // AIエンジンのインスタンス
+        this.chessEngine = new ChessEngine(shogiBoard);
         
-        // モック用の思考時間（実際のAIが実装されるまでの仮実装）
-        this.mockThinkingTime = {
+        // 思考時間調整（ユーザー体験向上のため）
+        this.minThinkingTime = {
             [AI_DIFFICULTY.BEGINNER]: 1000,      // 1秒
-            [AI_DIFFICULTY.INTERMEDIATE]: 2000,  // 2秒
-            [AI_DIFFICULTY.ADVANCED]: 3000       // 3秒
+            [AI_DIFFICULTY.INTERMEDIATE]: 1500,  // 1.5秒
+            [AI_DIFFICULTY.ADVANCED]: 2000       // 2秒
         };
     }
     
@@ -54,14 +38,16 @@ class AIInterface {
      * AI設定を更新する
      * @param {string} difficulty 難易度
      * @param {string} playerSide プレイヤーの手番
-     * @param {string} timeLimit 持ち時間
      */
-    updateSettings(difficulty, playerSide, timeLimit) {
+    updateSettings(difficulty, playerSide) {
         this.difficulty = difficulty;
         this.playerSide = playerSide;
-        this.timeLimit = timeLimit;
         
-        console.log(`AI設定を更新: 難易度=${difficulty}, プレイヤー手番=${playerSide}, 持ち時間=${timeLimit}`);
+        // AIエンジンの設定を更新
+        this.chessEngine.setDifficulty(difficulty);
+        this.chessEngine.setPlayerSide(playerSide);
+        
+        console.log(`AI設定を更新: 難易度=${difficulty}, プレイヤー手番=${playerSide}`);
     }
     
     /**
@@ -74,11 +60,119 @@ class AIInterface {
         this.isAIThinking = true;
         this.showThinkingUI();
         
-        // 現在の盤面状態を取得
-        const boardState = this.shogiBoard.getBoardState();
+        // 現在の手番を保存
+        const originalTurn = this.shogiBoard.currentTurn;
         
-        // モックAI思考処理（実際のAIが実装されるまでの仮実装）
-        this.mockAIThinking(boardState, moveCallback);
+        // 最小思考時間
+        const minThinkTime = this.minThinkingTime[this.difficulty];
+        const startTime = Date.now();
+        
+        // タイムアウト処理（30秒以上かかったら強制終了）
+        const timeoutID = setTimeout(() => {
+            if (this.isAIThinking) {
+                console.error('AIの思考がタイムアウトしました');
+                this.isAIThinking = false;
+                this.hideThinkingUI();
+                
+                // 手番を元に戻す
+                this.shogiBoard.currentTurn = originalTurn;
+                
+                // ランダムな手を選択して返す
+                const randomMove = this.selectRandomMove();
+                if (moveCallback && typeof moveCallback === 'function') {
+                    moveCallback(randomMove);
+                }
+            }
+        }, 30000); // 30秒でタイムアウト
+        
+        // Web Workerでバックグラウンド処理を行いたいが、
+        // シンプルにするために単一スレッドで実装
+        setTimeout(() => {
+            // 思考が中止されていたら何もしない
+            if (!this.isAIThinking) {
+                clearTimeout(timeoutID);
+                // 手番を元に戻す
+                this.shogiBoard.currentTurn = originalTurn;
+                return;
+            }
+            
+            try {
+                // AIエンジンで最善手を計算
+                const bestMove = this.chessEngine.findBestMove(true); // 強制的に手を返すように
+                
+                // タイムアウト処理をクリア
+                clearTimeout(timeoutID);
+                
+                // 経過時間を計算
+                const elapsedTime = Date.now() - startTime;
+                
+                // 最小思考時間を確保するための調整
+                if (elapsedTime < minThinkTime) {
+                    setTimeout(() => {
+                        // 手番が変わっていた場合は元に戻す
+                        if (this.shogiBoard.currentTurn !== originalTurn) {
+                            this.shogiBoard.currentTurn = originalTurn;
+                        }
+                        this.finishThinking(bestMove, moveCallback);
+                    }, minThinkTime - elapsedTime);
+                } else {
+                    // 手番が変わっていた場合は元に戻す
+                    if (this.shogiBoard.currentTurn !== originalTurn) {
+                        this.shogiBoard.currentTurn = originalTurn;
+                    }
+                    this.finishThinking(bestMove, moveCallback);
+                }
+            } catch (error) {
+                // エラーが発生した場合
+                console.error('AIの思考中にエラーが発生しました:', error);
+                clearTimeout(timeoutID);
+                this.isAIThinking = false;
+                this.hideThinkingUI();
+                
+                // 手番を元に戻す
+                this.shogiBoard.currentTurn = originalTurn;
+                
+                // ランダムな手を選択して返す
+                const randomMove = this.selectRandomMove();
+                if (moveCallback && typeof moveCallback === 'function') {
+                    moveCallback(randomMove);
+                }
+            }
+        }, 0);
+    }
+    
+    /**
+     * 思考を終了し、結果を返す
+     * @param {Object} move AIが選択した指し手
+     * @param {Function} moveCallback コールバック関数
+     */
+    finishThinking(move, moveCallback) {
+        // 思考が中止されていたら何もしない
+        if (!this.isAIThinking) return;
+        
+        // 思考を終了
+        this.isAIThinking = false;
+        this.hideThinkingUI();
+        
+        console.log('AI思考完了:', move);
+        
+        // AIの手番を設定（プレイヤーの設定によって決定）
+        const aiTurn = this.playerSide === PLAYER_SIDE.FIRST ? 
+                      PIECE_OWNER.OPPONENT : PIECE_OWNER.PLAYER;
+        
+        // 現在の手番がAIの手番でない場合は修正（これが重要）
+        if (this.shogiBoard.currentTurn !== aiTurn) {
+            console.warn('手番が不正な状態です。AIの手番に修正します:', 
+                        'Current:', this.shogiBoard.currentTurn, 
+                        'Should be:', aiTurn);
+            this.shogiBoard.currentTurn = aiTurn;
+            this.shogiBoard.updateTurnDisplay();
+        }
+        
+        // コールバックで指し手を返す
+        if (moveCallback && typeof moveCallback === 'function') {
+            moveCallback(move);
+        }
     }
     
     /**
@@ -106,89 +200,37 @@ class AIInterface {
     }
     
     /**
-     * モック実装: AIの思考をシミュレート
-     * @param {Array} boardState 盤面状態
-     * @param {Function} moveCallback AIが指し手を決定した時のコールバック関数
+     * ランダムな手を選択する（エラー時や思考タイムアウト時のフォールバック用）
+     * @returns {Object} ランダムな指し手
      */
-    mockAIThinking(boardState, moveCallback) {
-        // 難易度に応じた思考時間を設定
-        const thinkingTime = this.mockThinkingTime[this.difficulty];
-        
-        // 思考時間後に指し手を返す
-        setTimeout(() => {
-            // 思考が中止されていたら何もしない
-            if (!this.isAIThinking) return;
+    selectRandomMove() {
+        console.log('ランダムな手を選択します');
+        try {
+            // 現在の手番を保存
+            const originalTurn = this.shogiBoard.currentTurn;
             
-            // ランダムな合法手を生成
-            const move = this.generateRandomLegalMove();
+            // AIの手番を設定
+            const aiTurn = this.playerSide === PLAYER_SIDE.FIRST ? 
+                          PIECE_OWNER.OPPONENT : PIECE_OWNER.PLAYER;
+            this.shogiBoard.currentTurn = aiTurn;
             
-            // 思考を終了
-            this.isAIThinking = false;
-            this.hideThinkingUI();
+            // 合法手を生成
+            const legalMoves = this.shogiBoard.generateLegalMoves();
             
-            // コールバックで指し手を返す
-            if (moveCallback && typeof moveCallback === 'function') {
-                moveCallback(move);
+            // 手番を元に戻す
+            this.shogiBoard.currentTurn = originalTurn;
+            
+            // 合法手がある場合はランダムに選択
+            if (legalMoves && legalMoves.length > 0) {
+                const randomIndex = Math.floor(Math.random() * legalMoves.length);
+                return legalMoves[randomIndex];
             }
-        }, thinkingTime);
-    }
-    
-    /**
-     * モック実装: ランダムな合法手を生成
-     * @returns {Object} 指し手情報
-     */
-    generateRandomLegalMove() {
-        // 現在の手番の駒のリストを取得
-        const pieces = this.shogiBoard.getPiecesForCurrentTurn();
-        
-        // 合法手のリストを作成
-        const legalMoves = [];
-        
-        // 各駒について移動可能なマスを調べる
-        pieces.forEach(piece => {
-            const movableCells = this.shogiBoard.getMovableCells(piece.row, piece.col, piece);
-            
-            // 各移動可能マスを合法手リストに追加
-            movableCells.forEach(cell => {
-                legalMoves.push({
-                    fromRow: piece.row,
-                    fromCol: piece.col,
-                    toRow: cell.row,
-                    toCol: cell.col,
-                    piece: piece
-                });
-            });
-        });
-        
-        // 持ち駒についても調べる
-        const capturedPieces = this.shogiBoard.getCapturedPiecesForCurrentTurn();
-        
-        // 各持ち駒について打てるマスを調べる
-        Object.entries(capturedPieces).forEach(([pieceType, count]) => {
-            if (count > 0) {
-                const droppableCells = this.shogiBoard.getDroppableCells(pieceType);
-                
-                // 各打てるマスを合法手リストに追加
-                droppableCells.forEach(cell => {
-                    legalMoves.push({
-                        fromRow: -1,  // 持ち駒からの指し手を示す特殊値
-                        fromCol: -1,
-                        toRow: cell.row,
-                        toCol: cell.col,
-                        pieceType: pieceType
-                    });
-                });
-            }
-        });
-        
-        // 合法手がない場合は投了
-        if (legalMoves.length === 0) {
-            return { resign: true };
+        } catch (e) {
+            console.error('ランダムな手の選択に失敗しました:', e);
         }
         
-        // ランダムに1手選択
-        const randomIndex = Math.floor(Math.random() * legalMoves.length);
-        return legalMoves[randomIndex];
+        // 最終手段として投了
+        return { resign: true, message: '思考中にエラーが発生したため、投了します' };
     }
 }
 

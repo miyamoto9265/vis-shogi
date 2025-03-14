@@ -266,6 +266,35 @@ footer {
     transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
 
+/* フッター */
+.game-footer {
+    margin-top: 30px;
+    padding: 15px 0;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+    border-top: 1px solid var(--border-color);
+}
+
+.game-footer p {
+    margin: 5px 0;
+}
+
+#version-info {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+#game-version {
+    font-family: monospace;
+}
+
+@media (max-width: 768px) {
+    .game-footer {
+        padding: 10px 0;
+    }
+}
+
 /* 将棋ゲーム固有のスタイル */
 
 /* 手番表示 */

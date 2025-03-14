@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiSettings = document.getElementById('ai-settings');
     const gameModeDisplay = document.getElementById('game-mode-display');
     
+    // バージョン情報を表示
+    displayVersionInfo();
+    
     // ゲームモード選択ボタン
     const humanVsHumanBtn = document.getElementById('human-vs-human');
     const humanVsAiBtn = document.getElementById('human-vs-ai');
@@ -61,14 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // 選択された設定を取得
         const difficulty = getSelectedRadioValue(difficultyRadios);
         const playerSide = getSelectedRadioValue(playerSideRadios);
-        const timeLimit = TIME_LIMIT.NONE; // 持ち時間は常に「なし」
         
         // ゲームを初期化
         initializeGame();
         
         // AIインターフェースを初期化
         ai = initializeAIInterface(shogiBoard);
-        ai.updateSettings(difficulty, playerSide, timeLimit);
+        ai.updateSettings(difficulty, playerSide);
         
         // プレイヤーが後手の場合、AIが先手として指す
         if (playerSide === PLAYER_SIDE.SECOND) {
@@ -184,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 originalSwitchTurn.call(shogiBoard);
                 
                 // AI対戦モードで、AIの手番になった場合
-                if (currentGameMode === 'human-vs-ai' && 
+                if (currentGameMode === 'human-vs-ai' && ai && 
                     ((ai.playerSide === PLAYER_SIDE.FIRST && shogiBoard.currentTurn === PIECE_OWNER.OPPONENT) ||
                      (ai.playerSide === PLAYER_SIDE.SECOND && shogiBoard.currentTurn === PIECE_OWNER.PLAYER))) {
                     // AIの思考を開始
@@ -210,8 +212,32 @@ document.addEventListener('DOMContentLoaded', () => {
     function startAIThinking() {
         if (!ai) return;
         
+        // AIの現在の手番を確認（プレイヤーの設定に基づく）
+        const aiTurn = ai.playerSide === PLAYER_SIDE.FIRST ? 
+                     PIECE_OWNER.OPPONENT : PIECE_OWNER.PLAYER;
+        
+        // 現在の手番がAIの手番でなければ修正（重要）
+        if (shogiBoard.currentTurn !== aiTurn) {
+            console.warn('手番の不整合を修正します。AIの思考前に手番を修正:', 
+                       'Current:', shogiBoard.currentTurn, 
+                       'Should be:', aiTurn);
+            shogiBoard.currentTurn = aiTurn;
+            shogiBoard.updateTurnDisplay();
+        }
+        
         // AIの思考を開始
         ai.startThinking((move) => {
+            console.log('AIの指し手を実行します:', move);
+            
+            // 再度手番を確認（念のため）
+            if (shogiBoard.currentTurn !== aiTurn) {
+                console.warn('AIの指し手実行前に手番の不整合を検出:', 
+                           'Current:', shogiBoard.currentTurn, 
+                           'Should be:', aiTurn);
+                shogiBoard.currentTurn = aiTurn;
+                shogiBoard.updateTurnDisplay();
+            }
+            
             // AIの指し手を実行
             shogiBoard.executeAIMove(move);
         });
@@ -233,10 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentGameMode === 'human-vs-ai' && ai) {
             const difficulty = getSelectedRadioValue(difficultyRadios);
             const playerSide = getSelectedRadioValue(playerSideRadios);
-            const timeLimit = TIME_LIMIT.NONE; // 持ち時間は常に「なし」
             
             ai = initializeAIInterface(shogiBoard);
-            ai.updateSettings(difficulty, playerSide, timeLimit);
+            ai.updateSettings(difficulty, playerSide);
             
             // プレイヤーが後手の場合、AIが先手として指す
             if (playerSide === PLAYER_SIDE.SECOND) {
@@ -353,6 +378,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showCapturableMarksBtn) {
             showCapturableMarksBtn.classList.toggle('active', shogiBoard.showCapturableMarks);
             showCapturableMarksBtn.textContent = shogiBoard.showCapturableMarks ? 'ON' : 'OFF';
+        }
+    }
+    
+    /**
+     * バージョン情報を表示する
+     */
+    function displayVersionInfo() {
+        const versionElement = document.getElementById('game-version');
+        if (versionElement && typeof GAME_VERSION !== 'undefined') {
+            versionElement.textContent = `${GAME_VERSION.version} (${GAME_VERSION.commit})`;
         }
     }
 }); 
