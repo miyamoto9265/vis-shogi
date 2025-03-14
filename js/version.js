@@ -4,7 +4,7 @@
  */
 
 const GAME_VERSION = {
-    version: '0.1.0',  // セマンティックバージョニング
-    commit: 'd66980a', // Gitコミットハッシュ
+    version: '0.1.2',  // セマンティックバージョニング
+    commit: 'c6241f4', // Gitコミットハッシュ
     date: '2025-03-15' // 更新日
 };

@@ -386,8 +386,14 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function displayVersionInfo() {
         const versionElement = document.getElementById('game-version');
-        if (versionElement && typeof GAME_VERSION !== 'undefined') {
-            versionElement.textContent = `${GAME_VERSION.version} (${GAME_VERSION.commit})`;
+        if (versionElement) {
+            if (typeof GAME_VERSION !== 'undefined') {
+                versionElement.textContent = `${GAME_VERSION.version} (${GAME_VERSION.commit})`;
+                console.log('ゲームバージョン情報を表示:', GAME_VERSION.version);
+            } else {
+                versionElement.textContent = '0.1.1';
+                console.warn('GAME_VERSIONが見つかりません。デフォルトバージョンを表示します。');
+            }
         }
     }
 }); 
