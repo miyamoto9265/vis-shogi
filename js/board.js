@@ -973,6 +973,9 @@ class ShogiBoard {
         // 駒の種類と所有者の組み合わせの数
         const typeOwnerCount = Object.keys(pieceTypeOwnerCount).length;
         
+        // パイ状に分割するための角度計算（全体を360度として均等に分割）
+        const anglePerPiece = 360 / typeOwnerCount;
+        
         // 各駒の種類と所有者の組み合わせごとにインジケーターを追加
         let index = 0;
         for (const key in pieceTypeOwnerCount) {
@@ -980,16 +983,138 @@ class ShogiBoard {
             const indicator = document.createElement('div');
             indicator.classList.add('multiple-movable-indicator', `movable-${type}`, `movable-${owner}`);
             
-            // 幅を計算（駒の種類と所有者の組み合わせの数で均等に分割）
-            const width = 100 / typeOwnerCount;
-            indicator.style.width = `${width}%`;
+            // 開始角度と終了角度を計算
+            const startAngle = index * anglePerPiece;
+            const endAngle = (index + 1) * anglePerPiece;
             
-            // 位置を設定（左から順に配置）
-            indicator.style.left = `${index * width}%`;
+            // インジケーターのスタイルを設定
+            indicator.style.clipPath = this.createPieClipPath(startAngle, endAngle);
+            
+            // 位置設定（中心配置）
+            indicator.style.width = '100%';
+            indicator.style.height = '100%';
+            indicator.style.left = '0';
+            indicator.style.top = '0';
             
             cell.appendChild(indicator);
             index++;
         }
+    }
+    
+    /**
+     * 角度に基づいてパイ状のclip-pathを生成する
+     * @param {number} startAngle 開始角度
+     * @param {number} endAngle 終了角度
+     * @returns {string} clip-path ポリゴン定義
+     */
+    createPieClipPath(startAngle, endAngle) {
+        // 中心点
+        const centerX = 50;
+        const centerY = 50;
+        const radius = 100; // はみ出し防止のため100%にする（四角形の対角線の長さは約141%なので十分）
+        
+        // 角度が小さいときに隙間が発生しやすいので、最低限の中間点数を確保
+        let angleDiff = (endAngle - startAngle + 360) % 360; // 正の角度差を確保
+        
+        // 開始角度と終了角度を正規化（0-360度の範囲に）
+        startAngle = (startAngle + 360) % 360;
+        endAngle = (endAngle + 360) % 360;
+        
+        // 終了角度が開始角度より小さい場合、1周する扇形として扱う
+        if (endAngle <= startAngle) {
+            endAngle += 360;
+            angleDiff = endAngle - startAngle;
+        }
+        
+        // 開始角度と終了角度のラジアン変換
+        const startRad = (startAngle - 90) * Math.PI / 180; // -90で12時の位置から開始
+        const endRad = (endAngle - 90) * Math.PI / 180;
+        
+        // 中間点の数（角度差に応じて適切な数を設定）
+        const segmentsPerQuadrant = 3; // 90度あたりの分割数
+        const segmentCount = Math.max(2, Math.ceil(angleDiff * segmentsPerQuadrant / 90));
+        
+        // ポリゴンの頂点を集める
+        let points = [];
+        
+        // 中心点
+        points.push(`${centerX}% ${centerY}%`);
+        
+        // 角を通る点のリストを準備（0, 90, 180, 270度の点）
+        const cornerAngles = [0, 90, 180, 270, 360]; // 0と360は同じだが、計算の都合上両方含める
+        const cornerPoints = {
+            0: `0% 0%`,    // 左上
+            90: `100% 0%`,  // 右上
+            180: `100% 100%`, // 右下
+            270: `0% 100%`,   // 左下
+            360: `0% 0%`    // 左上（360度は0度と同じ）
+        };
+        
+        // 開始点
+        let startX = centerX + radius * Math.cos(startRad);
+        let startY = centerY + radius * Math.sin(startRad);
+        points.push(`${startX}% ${startY}%`);
+        
+        // 角を通る場合の処理
+        for (const corner of cornerAngles) {
+            if (startAngle < corner && corner < endAngle) {
+                // この角を通過するので、角の点を追加
+                points.push(cornerPoints[corner]);
+            }
+        }
+        
+        // 中間点
+        if (segmentCount > 0) {
+            for (let i = 1; i <= segmentCount; i++) {
+                const ratio = i / (segmentCount + 1);
+                const currentAngle = startAngle + ratio * angleDiff;
+                const currentRad = (currentAngle - 90) * Math.PI / 180;
+                
+                // 角に非常に近い場合は角の点を使用し、それ以外は弧上の点を計算
+                const nearestCorner = cornerAngles.find(corner => 
+                    Math.abs(currentAngle - corner) < 1
+                );
+                
+                if (nearestCorner !== undefined) {
+                    points.push(cornerPoints[nearestCorner]);
+                } else {
+                    const segX = centerX + radius * Math.cos(currentRad);
+                    const segY = centerY + radius * Math.sin(currentRad);
+                    points.push(`${segX}% ${segY}%`);
+                }
+            }
+        }
+        
+        // 終了点
+        let endX = centerX + radius * Math.cos(endRad);
+        let endY = centerY + radius * Math.sin(endRad);
+        points.push(`${endX}% ${endY}%`);
+        
+        // 重複を削除
+        points = this.removeDuplicatePoints(points);
+        
+        // ポリゴン作成
+        return `polygon(${points.join(', ')})`;
+    }
+    
+    /**
+     * 重複するポイントを削除
+     * @param {Array} points ポイントの配列
+     * @returns {Array} 重複を削除したポイントの配列
+     */
+    removeDuplicatePoints(points) {
+        // 完全に同じ文字列の場合のみSetで除去できるため、より厳密な比較が必要
+        const result = [];
+        const seen = new Set();
+        
+        for (const point of points) {
+            if (!seen.has(point)) {
+                seen.add(point);
+                result.push(point);
+            }
+        }
+        
+        return result;
     }
     
     /**

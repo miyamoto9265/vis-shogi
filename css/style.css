@@ -47,7 +47,7 @@
     --danger-mark-color: #FF0000; /* 取られる可能性のある駒のマーク色（赤） */
     
     /* 移動可能マスの透明度 - 設定で変更可能 */
-    --movable-cell-opacity: 0.3;
+    --movable-cell-opacity: 0.4; /* より見やすくするために透明度を下げる */
 
     /* 駒の種類ごとの移動可能マスの色（薄い色） */
     --movable-king: rgba(34, 34, 34, var(--movable-cell-opacity));
@@ -632,22 +632,29 @@ footer {
 .multiple-movable-indicator {
     position: absolute;
     height: 100%;
+    width: 100%;
     top: 0;
+    left: 0;
     z-index: 1;
     box-sizing: border-box;
     border: 2px solid;
     pointer-events: none;
+    transform-origin: center; /* 変形の中心点を要素の中心に設定 */
+    border-width: 2px; /* 境界線の太さ */
+    border-style: solid; /* 境界線のスタイル */
 }
 
 /* 所有者に応じた境界線の色 */
 .multiple-movable-indicator.movable-player {
     border-color: var(--movable-player-border);
     z-index: 1; /* プレイヤーのインジケーターを背面に表示 */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3); /* 境界が重なったときに見やすくする */
 }
 
 .multiple-movable-indicator.movable-opponent {
     border-color: var(--movable-opponent-border);
     z-index: 1; /* 相手のインジケーターを背面に表示 */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3); /* 境界が重なったときに見やすくする */
 }
 
 /* 駒の種類ごとの移動可能マスの色 */
